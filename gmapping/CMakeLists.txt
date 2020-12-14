@@ -23,7 +23,7 @@ catkin_package()
 
 add_executable(slam_gmapping src/slam_gmapping.cpp src/main.cpp)
 target_link_libraries(slam_gmapping ${Boost_LIBRARIES} ${catkin_LIBRARIES})
-add_dependencies(slam_gmapping slam_gmapping_generate_messages_cpp)
+add_dependencies(slam_gmapping gmapping_generate_messages_cpp)
 if(catkin_EXPORTED_TARGETS)
   add_dependencies(slam_gmapping ${catkin_EXPORTED_TARGETS})
 endif()

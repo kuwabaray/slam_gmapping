@@ -32,6 +32,7 @@
 #include "ros/ros.h"
 #include "sensor_msgs/LaserScan.h"
 #include "std_msgs/Float64.h"
+#include "std_srvs/Empty.h"
 #include "nav_msgs/GetMap.h"
 #include "tf/transform_listener.h"
 #include "tf/transform_broadcaster.h"
@@ -55,7 +56,7 @@ class SlamGMapping
     void startLiveSlam();
     void startReplay(const std::string & bag_fname, std::string scan_topic);
     void publishTransform();
-  
+    void restart();   
     void laserCallback(const sensor_msgs::LaserScan::ConstPtr& scan);
     bool mapCallback(nav_msgs::GetMap::Request  &req,
                      nav_msgs::GetMap::Response &res);
@@ -67,6 +68,7 @@ class SlamGMapping
     ros::Publisher sst_;
     ros::Publisher sstm_;
     ros::ServiceServer ss_;
+    ros::ServiceServer reset_service_;
     tf::TransformListener tf_;
     message_filters::Subscriber<sensor_msgs::LaserScan>* scan_filter_sub_;
     tf::MessageFilter<sensor_msgs::LaserScan>* scan_filter_;
@@ -74,6 +76,7 @@ class SlamGMapping
 
     GMapping::GridSlamProcessor* gsp_;
     GMapping::RangeSensor* gsp_laser_;
+    GMapping::OrientedPoint initialPose_;
     // The angles in the laser, going from -x to x (adjustment is made to get the laser between
     // symmetrical bounds as that's what gmapping expects)
     std::vector<double> laser_angles_;

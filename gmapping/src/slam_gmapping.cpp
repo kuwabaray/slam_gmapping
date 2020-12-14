@@ -272,10 +272,63 @@ void SlamGMapping::startLiveSlam()
   sst_ = node_.advertise<nav_msgs::OccupancyGrid>("map", 1, true);
   sstm_ = node_.advertise<nav_msgs::MapMetaData>("map_metadata", 1, true);
   ss_ = node_.advertiseService("dynamic_map", &SlamGMapping::mapCallback, this);
+  
+  //scan_filter_sub_ = new message_filters::Subscriber<sensor_msgs::LaserScan>(node_, "scan", 5);
+  //scan_filter_ = new tf::MessageFilter<sensor_msgs::LaserScan>(*scan_filter_sub_, tf_, odom_frame_, 5);
+  //scan_filter_->registerCallback(boost::bind(&SlamGMapping::laserCallback, this, _1));
+  //transform_thread_ = new boost::thread(boost::bind(&SlamGMapping::publishLoop, this, transform_publish_period_));
+}
+
+void SlamGMapping::restart()
+{
+  if(transform_thread_)
+  {
+    delete transform_thread_;
+    transform_thread_ = NULL;
+  }
+
+  if(scan_filter_)
+  {
+    delete scan_filter_;
+    scan_filter_ = NULL;
+  }
+
+  if(scan_filter_sub_)
+  {
+    delete scan_filter_sub_;
+    scan_filter_sub_ = NULL;
+  }
+
+  if(gsp_)
+  {
+    delete gsp_;
+    gsp_ = NULL;
+  }
+
+  map_to_odom_= tf::Transform(tf::createQuaternionFromRPY( 0, 0, 0 ), tf::Point(0, 0, 0 ));
+  laser_count_ = 0;
+
+  seed_ = time(NULL);
+
+  gsp_ = new GMapping::GridSlamProcessor();
+  ROS_ASSERT(gsp_);
+
+  if(gsp_laser_)
+  {
+    delete gsp_laser_;
+    gsp_laser_ = NULL;
+  }
+  if(gsp_odom_)
+  {
+    delete gsp_odom_;
+    gsp_odom_ = NULL;
+  }
+
+  got_first_scan_ = false;
+
   scan_filter_sub_ = new message_filters::Subscriber<sensor_msgs::LaserScan>(node_, "scan", 5);
   scan_filter_ = new tf::MessageFilter<sensor_msgs::LaserScan>(*scan_filter_sub_, tf_, odom_frame_, 5);
   scan_filter_->registerCallback(boost::bind(&SlamGMapping::laserCallback, this, _1));
-
   transform_thread_ = new boost::thread(boost::bind(&SlamGMapping::publishLoop, this, transform_publish_period_));
 }
 
@@ -513,11 +566,10 @@ SlamGMapping::initMapper(const sensor_msgs::LaserScan& scan)
 
 
   /// @todo Expose setting an initial pose
-  GMapping::OrientedPoint initialPose;
-  if(!getOdomPose(initialPose, scan.header.stamp))
+  if(!getOdomPose(initialPose_, scan.header.stamp))
   {
     ROS_WARN("Unable to determine inital pose of laser! Starting point will be set to zero.");
-    initialPose = GMapping::OrientedPoint(0.0, 0.0, 0.0);
+    initialPose_ = GMapping::OrientedPoint(0.0, 0.0, 0.0);
   }
 
   gsp_->setMatchingParameters(maxUrange_, maxRange_, sigma_,
@@ -529,7 +581,7 @@ SlamGMapping::initMapper(const sensor_msgs::LaserScan& scan)
   gsp_->setUpdatePeriod(temporalUpdate_);
   gsp_->setgenerateMap(false);
   gsp_->GridSlamProcessor::init(particles_, xmin_, ymin_, xmax_, ymax_,
-                                delta_, initialPose);
+                                delta_, initialPose_);
   gsp_->setllsamplerange(llsamplerange_);
   gsp_->setllsamplestep(llsamplestep_);
   /// @todo Check these calls; in the gmapping gui, they use
@@ -794,6 +846,8 @@ SlamGMapping::mapCallback(nav_msgs::GetMap::Request  &req,
   else
     return false;
 }
+
+
 
 void SlamGMapping::publishTransform()
 {

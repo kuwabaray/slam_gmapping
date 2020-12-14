@@ -27,21 +27,72 @@
  *
  */
 
-/* Author: Brian Gerkey */
 
 #include <ros/ros.h>
-
 #include "slam_gmapping.h"
+#include "gmapping/SlamCmd.h"
 
-int
-main(int argc, char** argv)
+ros::ServiceServer service_;
+
+uint8_t restart_flag_;
+bool isSlamOk_;
+
+boost::mutex mutex_;
+
+bool slamSrvCallback(gmapping::SlamCmd::Request& request, gmapping::SlamCmd::Response& response);
+
+int main(int argc, char** argv)
 {
+  isSlamOk_ = false;
+  restart_flag_ = 0;
   ros::init(argc, argv, "slam_gmapping");
-
+  ros::NodeHandle slam_nh("~");
   SlamGMapping gn;
   gn.startLiveSlam();
-  ros::spin();
+
+  service_ = slam_nh.advertiseService("/slam_cmd_srv", slamSrvCallback); // command service
+
+  ros::Rate rate(20);
+  while (ros::ok())
+  {
+    if(restart_flag_ != 0)
+    {
+      restart_flag_ = 0;
+      gn.restart();
+      ros::Duration(0.3).sleep();
+      isSlamOk_ = true;
+    }
+    ros::MultiThreadedSpinner s(3);
+    ros::spinOnce();
+    rate.sleep();
+  }
+
+  service_.shutdown();
 
   return(0);
 }
 
+bool slamSrvCallback(gmapping::SlamCmd::Request& request, gmapping::SlamCmd::Response& response)
+{
+  ROS_WARN("slamSrvCallback request:%d",request.cmd);
+  switch (request.cmd)
+  {
+    case 1:
+    {
+      boost::mutex::scoped_lock lock(mutex_);
+      restart_flag_ = 1;
+      isSlamOk_ = false;
+      response.status = isSlamOk_;
+      break;
+    }
+    case 2:
+    {
+      boost::mutex::scoped_lock lock(mutex_);
+      response.status = isSlamOk_;
+      break;
+    }
+    default:
+      break;
+  }
+  return true;
+}

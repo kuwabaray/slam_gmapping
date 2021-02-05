@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8)
 project(gmapping)
 
-find_package(catkin REQUIRED nav_msgs nodelet openslam_gmapping roscpp tf rosbag_storage message_generation)
+find_package(catkin REQUIRED nav_msgs nodelet openslam_gmapping roscpp tf rosbag_storage)
 
 find_package(Boost REQUIRED)
 
@@ -9,21 +9,10 @@ include_directories(${Boost_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
 
 include_directories(src)
 
-add_service_files(
-  FILES
-  SlamCmd.srv
-)
-
-generate_messages(
-  DEPENDENCIES
-  std_msgs 
-)
-
 catkin_package()
 
 add_executable(slam_gmapping src/slam_gmapping.cpp src/main.cpp)
 target_link_libraries(slam_gmapping ${Boost_LIBRARIES} ${catkin_LIBRARIES})
-add_dependencies(slam_gmapping gmapping_generate_messages_cpp)
 if(catkin_EXPORTED_TARGETS)
   add_dependencies(slam_gmapping ${catkin_EXPORTED_TARGETS})
 endif()
@@ -47,7 +36,7 @@ install(FILES nodelet_plugins.xml
   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
 
-if(FALSE) #if(CATKIN_ENABLE_TESTING)
+if(CATKIN_ENABLE_TESTING)
   find_package(rostest REQUIRED)
   if(TARGET tests)
     add_executable(gmapping-rtest EXCLUDE_FROM_ALL test/rtest.cpp)

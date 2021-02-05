@@ -56,7 +56,7 @@ class SlamGMapping
     void startLiveSlam();
     void startReplay(const std::string & bag_fname, std::string scan_topic);
     void publishTransform();
-    void restart();   
+    bool clearCallback(std_srvs::Empty::Request &req, std_srvs::Empty::Response &res);   
     void laserCallback(const sensor_msgs::LaserScan::ConstPtr& scan);
     bool mapCallback(nav_msgs::GetMap::Request  &req,
                      nav_msgs::GetMap::Response &res);
@@ -68,7 +68,7 @@ class SlamGMapping
     ros::Publisher sst_;
     ros::Publisher sstm_;
     ros::ServiceServer ss_;
-    ros::ServiceServer reset_service_;
+    ros::ServiceServer clear_server_;
     tf::TransformListener tf_;
     message_filters::Subscriber<sensor_msgs::LaserScan>* scan_filter_sub_;
     tf::MessageFilter<sensor_msgs::LaserScan>* scan_filter_;

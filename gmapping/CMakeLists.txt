@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.0.2)
 project(gmapping)
 
 find_package(catkin REQUIRED nav_msgs nodelet openslam_gmapping roscpp tf rosbag_storage)
@@ -25,6 +25,7 @@ target_link_libraries(slam_gmapping_replay ${Boost_LIBRARIES} ${catkin_LIBRARIES
 if(catkin_EXPORTED_TARGETS)
 add_dependencies(slam_gmapping_replay ${catkin_EXPORTED_TARGETS})
 endif()
+
 
 install(TARGETS slam_gmapping slam_gmapping_nodelet slam_gmapping_replay
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
@@ -91,4 +92,7 @@ if(CATKIN_ENABLE_TESTING)
   add_rostest(test/basic_localization_symmetry.launch DEPENDENCIES ${LOCAL_DEPENDENCIES})
   add_rostest(test/basic_localization_upside_down.launch DEPENDENCIES ${LOCAL_DEPENDENCIES})
   add_rostest(test/basic_localization_laser_different_beamcount.test DEPENDENCIES ${LOCAL_DEPENDENCIES})
+
+
+
 endif()

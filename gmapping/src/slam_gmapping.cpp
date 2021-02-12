@@ -285,11 +285,6 @@ SlamGMapping::clearCallback(std_srvs::Empty::Request &req, std_srvs::Empty::Resp
 {
   boost::mutex::scoped_lock map_lock (map_mutex_);
   boost::mutex::scoped_lock odom_lock (map_to_odom_mutex_);
-  if(transform_thread_)
-  {
-    delete transform_thread_;
-    transform_thread_ = NULL;
-  }
 
   if(scan_filter_)
   {
@@ -312,8 +307,6 @@ SlamGMapping::clearCallback(std_srvs::Empty::Request &req, std_srvs::Empty::Resp
   map_to_odom_= tf::Transform(tf::createQuaternionFromRPY( 0, 0, 0 ), tf::Point(0, 0, 0 ));
   laser_count_ = 0;
 
-  seed_ = time(NULL);
-
   gsp_ = new GMapping::GridSlamProcessor();
   ROS_ASSERT(gsp_);
 
@@ -333,7 +326,6 @@ SlamGMapping::clearCallback(std_srvs::Empty::Request &req, std_srvs::Empty::Resp
   scan_filter_sub_ = new message_filters::Subscriber<sensor_msgs::LaserScan>(node_, "scan", 5);
   scan_filter_ = new tf::MessageFilter<sensor_msgs::LaserScan>(*scan_filter_sub_, tf_, odom_frame_, 5);
   scan_filter_->registerCallback(boost::bind(&SlamGMapping::laserCallback, this, _1));
-  transform_thread_ = new boost::thread(boost::bind(&SlamGMapping::publishLoop, this, transform_publish_period_));
   return true;
 }
 
@@ -787,6 +779,7 @@ SlamGMapping::updateMap(const sensor_msgs::LaserScan& scan)
     matcher.registerScan(smap, n->pose, &((*n->reading)[0]));
   }
 
+  
   // the map may have expanded, so resize ros message as well
   if(map_.map.info.width != (unsigned int) smap.getMapSizeX() || map_.map.info.height != (unsigned int) smap.getMapSizeY()) {
 
@@ -808,6 +801,7 @@ SlamGMapping::updateMap(const sensor_msgs::LaserScan& scan)
 
     ROS_DEBUG("map origin: (%f, %f)", map_.map.info.origin.position.x, map_.map.info.origin.position.y);
   }
+  
 
   for(int x=0; x < smap.getMapSizeX(); x++)
   {
